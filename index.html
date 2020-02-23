@@ -11,16 +11,37 @@
     
 
     <div class="container">
-        <div class="game-board">
-            <div class="square" data-square="0"></div>
-            <div class="square" data-square="1"></div>
-            <div class="square" data-square="2"></div>
-            <div class="square" data-square="3"></div>
-            <div class="square" data-square="4"></div>
-            <div class="square" data-square="5"></div>
-            <div class="square" data-square="6"></div>
-            <div class="square" data-square="7"></div>
-            <div class="square" data-square="8"></div>
+        <div class="game-view">
+            <div class="game-board">
+                <div class="square" data-square="0"></div>
+                <div class="square" data-square="1"></div>
+                <div class="square" data-square="2"></div>
+                <div class="square" data-square="3"></div>
+                <div class="square" data-square="4"></div>
+                <div class="square" data-square="5"></div>
+                <div class="square" data-square="6"></div>
+                <div class="square" data-square="7"></div>
+                <div class="square" data-square="8"></div>
+            </div>
+            <button id="restart-game"></button>
+        </div>
+        
+        <div class="start-view-1">
+            <h1>Tic Tac Toe</h1>
+            <p>Select mode:</p>
+            <button id="player-vs-player">Player vs Player (Local)</button>
+            <button id="player-vs-computer">Player vs CPU</button>
+        </div>
+        <div class="start-view-2">
+            <form onsubmit="Game.startGame(event)" class="form">
+                <label for="player1name">Player 1 name:</label>
+                <input type="text" id="player1name" name="player1name" required>
+                <br>
+                <label for="player2name">Player 2 name:</label>
+                <input type="text" id="player2name" name="player2name" required>
+                <br>
+                <input type="submit" value="Start game" id="start-game" onclick="event.preventDefault()">
+            </form>
         </div>
     </div>
 

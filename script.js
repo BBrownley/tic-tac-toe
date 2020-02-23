@@ -12,6 +12,69 @@ Player (factory)
   - 
 */
 
+const debug = true;
+
+let log;
+
+if (debug) {
+    log = console.log;
+} else {
+    log = (value) => {};
+}
+
+const DisplayController = (() => {
+
+    const playerVsPlayerButton = document.getElementById("player-vs-player");
+    const playerVsComputerButton = document.getElementById("player-vs-computer");
+    const startGameButton = document.getElementById("start-game");
+
+    const startView1 = document.querySelector(".start-view-1");
+    const startView2 = document.querySelector(".start-view-2");
+    const gameView = document.querySelector(".game-view");
+
+    const startGame = (e) => {
+
+        e.preventDefault();
+        log(e.target)
+        
+        if (e.target === "form.form") {
+            log("hey")
+        }
+
+    }
+
+    const restartGame = () => {
+        Gameboard.setGameState = [
+            {mark: null}, {mark: null}, {mark: null},
+            {mark: null}, {mark: null}, {mark: null},
+            {mark: null}, {mark: null}, {mark: null}
+        ]
+    }
+
+    const switchView = (e) => {
+        if (e.target.getAttribute("id") === "player-vs-player" || 
+            e.target.getAttribute("id") === "player-vs-computer") {
+
+            startView1.style.display = "none";
+            startView2.style.display = "block";
+
+        } else if (e.target.getAttribute("id") === "player-vs-computer") {
+            log("PvM")
+        } else if (e.target.getAttribute("id") === "start-game") {
+            log("Start game")
+            startView2.style.display = "none";
+            gameView.style.display = "block"
+        }
+    }
+
+    [playerVsPlayerButton, playerVsComputerButton, startGameButton].forEach((button) => {
+        button.addEventListener("click", switchView);
+    })
+
+    return {startGame};
+
+})();
+
 const Gameboard = ((boardElement, allSquares) => {
 
     let player1, player2;
@@ -24,10 +87,14 @@ const Gameboard = ((boardElement, allSquares) => {
         {mark: null}, {mark: null}, {mark: null}
     ]
 
+    const setGameState = (state) => {
+        gameState = state;
+    }
+
     const play = (firstPlayer, secondPlayer) => {
         player1 = firstPlayer;
         player2 = secondPlayer;
-        console.log(`
+        log(`
             Player 1: ${player1.name}
             Player 2: ${player2.name}
         `)
@@ -89,7 +156,7 @@ const Gameboard = ((boardElement, allSquares) => {
     }
 
     const render = () => {
-        console.log("Render");
+        log("Render");
 
         gameState.forEach((status, index) => {
             allSquares[index].textContent = status.mark;
@@ -102,11 +169,11 @@ const Gameboard = ((boardElement, allSquares) => {
         square.addEventListener("click", clickHander)
     })
 
-    return {play};
+    return {play, setGameState};
 
 })(
-    document.querySelector(".game-board"),
-    Array.from(document.getElementsByClassName("square"))
+    document.querySelector(".game-view"),
+    Array.from(document.querySelector(".game-board").getElementsByClassName("square"))
 );
 
 const Player = (name, mark) => {

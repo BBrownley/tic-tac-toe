@@ -4,11 +4,23 @@
     box-sizing: border-box;
 }
 
+.game-view {
+    display: none;
+}
+
 .game-board {
-    background-color: gray;
     display: inline-flex;
+    background-color: gray;
     width: 300px;
     flex-wrap: wrap;
+}
+
+.start-view-1 {
+    display: block;
+}
+
+.start-view-2 {
+    display: none;
 }
 
 .square {
