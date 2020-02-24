@@ -10,8 +10,11 @@
 <body>
     
 
-    <div class="container">
-        <div class="game-view">
+    <div class="container" id="app">
+        <h1>Tic Tac Toe</h1>
+
+        <div class="view game-view">
+
             <div class="game-board">
                 <div class="square" data-square="0"></div>
                 <div class="square" data-square="1"></div>
@@ -23,16 +26,21 @@
                 <div class="square" data-square="7"></div>
                 <div class="square" data-square="8"></div>
             </div>
-            <button id="restart-game"></button>
+            <br>
+            <button id="restart-game" onclick="MainController.restartGame()">Restart</button>
+            <p class="whos-turn">
+                <span id="whos-turn-name"></span>'s Turn (<span id="whos-turn-mark"></span>)
+            </p>
+            <p class="result"></p>
         </div>
         
-        <div class="start-view-1">
-            <h1>Tic Tac Toe</h1>
+        <div class="view start-view-1">
             <p>Select mode:</p>
             <button id="player-vs-player">Player vs Player (Local)</button>
             <button id="player-vs-computer">Player vs CPU</button>
         </div>
-        <div class="start-view-2">
+
+        <div class="view start-view-2">
             <form onsubmit="Game.startGame(event)" class="form">
                 <label for="player1name">Player 1 name:</label>
                 <input type="text" id="player1name" name="player1name" required>
@@ -41,7 +49,11 @@
                 <input type="text" id="player2name" name="player2name" required>
                 <br>
                 <input type="submit" value="Start game" id="start-game" onclick="event.preventDefault()">
+                <button id="back-button" onclick="event.preventDefault()">Back</button>
             </form>
+            <div id="errors">
+                <!--Errors generated from DisplayController will display here-->
+            </div>
         </div>
     </div>
 

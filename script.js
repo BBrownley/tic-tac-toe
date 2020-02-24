@@ -1,4 +1,3 @@
-
 /*
 
 Gameboard (module)
@@ -10,6 +9,11 @@ Player (factory)
   - mark (String)
   - name (String)
   - 
+
+
+Bugs
+
+When selecting "Player vs CPU" mode, if user presses back (on their web browser), all views appear at the same time
 */
 
 const debug = true;
@@ -22,11 +26,16 @@ if (debug) {
     log = (value) => {};
 }
 
-const DisplayController = (() => {
+const MainController = (() => {
 
     const playerVsPlayerButton = document.getElementById("player-vs-player");
     const playerVsComputerButton = document.getElementById("player-vs-computer");
     const startGameButton = document.getElementById("start-game");
+    const backButton = document.getElementById("back-button");
+
+    const formElement = document.querySelector(".start-view-2 .form");
+    const player1NameInput = document.getElementById("player1name");
+    const player2NameInput = document.getElementById("player2name");
 
     const startView1 = document.querySelector(".start-view-1");
     const startView2 = document.querySelector(".start-view-2");
@@ -43,35 +52,112 @@ const DisplayController = (() => {
 
     }
 
+    const renderView = viewToRender => {
+
+        const appRoot = document.getElementById("app");
+        const allViews = Array.from(appRoot.children).filter(child => child.classList.contains("view"));
+
+        allViews.forEach(view => view.style.display = "none");
+        viewToRender.style.display = "block";
+        
+    }
+
     const restartGame = () => {
-        Gameboard.setGameState = [
-            {mark: null}, {mark: null}, {mark: null},
-            {mark: null}, {mark: null}, {mark: null},
-            {mark: null}, {mark: null}, {mark: null}
-        ]
+        log("Restartting game")
+        
+        Gameboard.restartGame();
+    }
+
+    const clearErrors = () => {
+        const errorContainer = document.getElementById("errors");
+        errorContainer.innerHTML = "";
+    }
+
+    const validateAndTrimNameInputs = (name1, name2) => {
+
+        const name1Trimmed = name1.trim().toString();
+        const name2Trimmed = name2.trim().toString();
+        let errors = [];
+        
+        if (name1Trimmed.length === 0 || name2.trim().toString().length === 0) {
+            
+            if (name1Trimmed.length === 0) errors.push("Player 1 name invalid");
+            if (name2Trimmed.length === 0) errors.push("Player 2 name invalid")
+            
+            return {
+                isValid: false,
+                errors
+            }
+        } else {
+            log("Both names are valid")
+            return {
+                isValid: true,
+                name1Trimmed,
+                name2Trimmed
+            }
+        }
     }
 
     const switchView = (e) => {
         if (e.target.getAttribute("id") === "player-vs-player" || 
             e.target.getAttribute("id") === "player-vs-computer") {
 
-            startView1.style.display = "none";
-            startView2.style.display = "block";
+            renderView(startView2);
 
-        } else if (e.target.getAttribute("id") === "player-vs-computer") {
-            log("PvM")
+            log(formElement);
+            player1NameInput.value = "";
+            player2NameInput.value = "";
+
+            if (e.target.getAttribute("id") === "player-vs-computer") {
+                player2NameInput.value = "Computer 1";
+                player2NameInput.disabled = true;
+            } else {
+                player2NameInput.disabled = false;
+            }
+
         } else if (e.target.getAttribute("id") === "start-game") {
+
+            let p1, p2;
+            const validationResults = validateAndTrimNameInputs(player1NameInput.value, player2NameInput.value);
+
+            if (validationResults.isValid === false) {
+
+                const errorContainer = document.getElementById("errors");
+                clearErrors();
+
+                const errorsToDisplay = document.createElement("div");
+                validationResults.errors.forEach(error => {
+                    const errorElement = document.createElement("p");
+                    errorElement.textContent = error;
+                    errorElement.style.color = "red";
+                    errorsToDisplay.appendChild(errorElement);
+                })
+
+                errorContainer.appendChild(errorsToDisplay);
+                return;
+
+            } else {
+                p1 = Player(validationResults.name1Trimmed, "X");
+                p2 = Player(validationResults.name2Trimmed, "O");
+            }
+
             log("Start game")
-            startView2.style.display = "none";
-            gameView.style.display = "block"
+
+            Gameboard.play(p1, p2);
+
+            renderView(gameView);
+
+        } else if (e.target.getAttribute("id") === "back-button") {
+            renderView(startView1);
         }
     }
 
-    [playerVsPlayerButton, playerVsComputerButton, startGameButton].forEach((button) => {
+    [playerVsPlayerButton, playerVsComputerButton, startGameButton, backButton].forEach((button) => {
+        log(button)
         button.addEventListener("click", switchView);
     })
 
-    return {startGame};
+    return {renderView, restartGame};
 
 })();
 
@@ -80,15 +166,32 @@ const Gameboard = ((boardElement, allSquares) => {
     let player1, player2;
     let whosTurn;
     let playerHasWon = false;
+    let marksPlaced = 0;
+
+    const whosTurnElement = document.querySelector(".whos-turn");
+    const resultElement = document.querySelector(".result");
     
-    const gameState = [
+    
+    let gameState = [
         {mark: null}, {mark: null}, {mark: null},
         {mark: null}, {mark: null}, {mark: null},
         {mark: null}, {mark: null}, {mark: null}
     ]
 
-    const setGameState = (state) => {
-        gameState = state;
+    const restartGame = () => {
+        gameState = [
+            {mark: null}, {mark: null}, {mark: null},
+            {mark: null}, {mark: null}, {mark: null},
+            {mark: null}, {mark: null}, {mark: null}
+        ]
+        whosTurn = player1;
+        playerHasWon = false;
+        marksPlaced = 0;
+        render();
+        // When we restart, turn off the result display - And turn on the whos-turn display
+        whosTurnElement.style.display = "block";
+        resultElement.style.display = "none";
+        
     }
 
     const play = (firstPlayer, secondPlayer) => {
@@ -99,6 +202,25 @@ const Gameboard = ((boardElement, allSquares) => {
             Player 2: ${player2.name}
         `)
         whosTurn = player1;
+        displayWhosTurn();
+    }
+
+    const displayWhosTurn = () => {
+        const whosTurnNameElement = document.getElementById("whos-turn-name");
+        const whosTurnMarkElement = document.getElementById("whos-turn-mark");
+
+        log(whosTurn)
+
+        whosTurnNameElement.textContent = whosTurn.name;
+        whosTurnMarkElement.textContent = whosTurn.mark;
+    }
+
+    const updateTurn = () => {
+        if (whosTurn === player1) {
+            whosTurn = player2;
+        } else {
+            whosTurn = player1;
+        }
     }
 
     const clickHander = (e) => {
@@ -111,15 +233,15 @@ const Gameboard = ((boardElement, allSquares) => {
 
         // Update internal gamestate
         gameState[indexOfClicked].mark = whosTurn.mark;
+        marksPlaced++;
+        log(marksPlaced)
+        updateTurn();
 
         render();
 
-        // Switch who's turn it is
-        if (whosTurn === player1) {
-            whosTurn = player2;
-        } else {
-            whosTurn = player1;
-        }
+    }
+
+    const checkForTie = () => {
 
     }
 
@@ -145,8 +267,21 @@ const Gameboard = ((boardElement, allSquares) => {
                 gameState[combination[2]].mark
             ];
             
-            if (!validateCombination(marksToCheck)) return;
+            if (!validateCombination(marksToCheck)) {
+                if (marksPlaced === 9) {
+                    whosTurnElement.style.display = "none";
+                    resultElement.style.display = "block";
+                    resultElement.textContent = "It's a tie";
+                }
+                return;
+            }
             playerHasWon = true;
+            updateTurn();
+
+            whosTurnElement.style.display = "none";
+            resultElement.style.display = "block";
+            resultElement.textContent = `${whosTurn.name} has won`
+            
         })
     }
 
@@ -162,14 +297,16 @@ const Gameboard = ((boardElement, allSquares) => {
             allSquares[index].textContent = status.mark;
         })
 
+        displayWhosTurn();
         checkForWinner();
+        
     }
 
     allSquares.forEach(square => {
         square.addEventListener("click", clickHander)
     })
 
-    return {play, setGameState};
+    return {play, restartGame};
 
 })(
     document.querySelector(".game-view"),
@@ -179,8 +316,3 @@ const Gameboard = ((boardElement, allSquares) => {
 const Player = (name, mark) => {
     return {name, mark}
 }
-
-const p1 = Player("Jeff", "X");
-const p2 = Player("Mark", "O");
-
-Gameboard.play(p1, p2);
