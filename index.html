@@ -28,6 +28,7 @@
             </div>
             <br>
             <button id="restart-game" onclick="MainController.restartGame()">Restart</button>
+            <button id="menu" onclick="MainController.menu(event)">Menu</button>
             <p class="whos-turn">
                 <span id="whos-turn-name"></span>'s Turn (<span id="whos-turn-mark"></span>)
             </p>
@@ -36,7 +37,7 @@
         
         <div class="view start-view-1">
             <p>Select mode:</p>
-            <button id="player-vs-player" disabled>Player vs Player (Local)</button>
+            <button id="player-vs-player">Player vs Player (Local)</button>
             <button id="player-vs-computer">Player vs CPU</button>
         </div>
 

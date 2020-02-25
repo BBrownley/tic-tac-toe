@@ -1,4 +1,4 @@
-const debug = true;
+const debug = false;
 
 let log;
 
@@ -15,7 +15,6 @@ const MainController = (() => {
     const startGameButton = document.getElementById("start-game");
     const backButton = document.getElementById("back-button");
 
-    const formElement = document.querySelector(".start-view-2 .form");
     const player1NameInput = document.getElementById("player1name");
     const player2NameInput = document.getElementById("player2name");
 
@@ -24,17 +23,6 @@ const MainController = (() => {
     const gameView = document.querySelector(".game-view");
 
     let enableCPU = false;
-
-    const startGame = (e) => {
-
-        e.preventDefault();
-        log(e.target)
-        
-        if (e.target === "form.form") {
-            log("hey")
-        }
-
-    }
 
     const renderView = viewToRender => {
 
@@ -47,8 +35,6 @@ const MainController = (() => {
     }
 
     const restartGame = () => {
-        log("Restartting game")
-        
         Gameboard.restartGame();
     }
 
@@ -81,13 +67,16 @@ const MainController = (() => {
         }
     }
 
+    const menu = (event) => {
+        switchView(event);
+    }
+
     const switchView = (e) => {
         if (e.target.getAttribute("id") === "player-vs-player" || 
             e.target.getAttribute("id") === "player-vs-computer") {
 
             renderView(startView2);
 
-            log(formElement);
             player1NameInput.value = "";
             player2NameInput.value = "";
 
@@ -122,27 +111,25 @@ const MainController = (() => {
 
             } else {
                 p1 = Player(validationResults.name1Trimmed, "X");
-                //p2 = Player(validationResults.name2Trimmed, "O");
-                p2 = Computer(validationResults.name2Trimmed, "O");
+                p2 = (enableCPU) ? Computer(validationResults.name2Trimmed, "O") : Player(validationResults.name2Trimmed, "O");
             }
-
-            log("Start game")
 
             Gameboard.play(p1, p2);
 
             renderView(gameView);
 
-        } else if (e.target.getAttribute("id") === "back-button") {
+        } else if (e.target.getAttribute("id") === "back-button" || e.target.getAttribute("id") === "menu") {
             renderView(startView1);
-        }
+            enableCPU = false;
+            restartGame();
+        } 
     }
 
     [playerVsPlayerButton, playerVsComputerButton, startGameButton, backButton].forEach((button) => {
-        log(button)
         button.addEventListener("click", switchView);
     })
 
-    return {renderView, restartGame};
+    return {renderView, restartGame, menu};
 
 })();
 
@@ -154,8 +141,7 @@ const Gameboard = ((boardElement, allSquares) => {
     let marksPlaced = 0;
 
     const whosTurnElement = document.querySelector(".whos-turn");
-    const resultElement = document.querySelector(".result");
-    
+    const resultElement = document.querySelector(".result"); 
     
     let gameState = [
         {mark: null}, {mark: null}, {mark: null},
@@ -163,16 +149,23 @@ const Gameboard = ((boardElement, allSquares) => {
         {mark: null}, {mark: null}, {mark: null}
     ]
 
-    const restartGame = () => {
+    const resetGameState = () => {
         gameState = [
             {mark: null}, {mark: null}, {mark: null},
             {mark: null}, {mark: null}, {mark: null},
             {mark: null}, {mark: null}, {mark: null}
         ]
+        
+    }
+
+    const restartGame = () => {
+
+        resetGameState();
+        render();
         whosTurn = player1;
         gameOver = false;
         marksPlaced = 0;
-        render();
+
         // When we restart, turn off the result display - And turn on the whos-turn display
         whosTurnElement.style.display = "block";
         resultElement.style.display = "none";
@@ -180,11 +173,14 @@ const Gameboard = ((boardElement, allSquares) => {
     }
 
     const play = (firstPlayer, secondPlayer) => {
+
         player1 = firstPlayer;
         player2 = secondPlayer;
 
         whosTurn = player1;
         displayWhosTurn();
+        render();
+
     }
 
     const displayWhosTurn = () => {
@@ -198,8 +194,6 @@ const Gameboard = ((boardElement, allSquares) => {
     const updateTurn = () => {
 
         if (gameOver) return;
-
-        log(whosTurn)
 
         if (whosTurn === player1) {
             whosTurn = player2;
@@ -234,16 +228,11 @@ const Gameboard = ((boardElement, allSquares) => {
 
     const computerMove = cpu => {
         if (gameOver) return;
-        log("CPU's turn")
             
         cpu.makeMove(gameState);
         marksPlaced++;
         checkForWinner();
         render();
-    }
-
-    const checkForTie = () => {
-
     }
 
     const checkForWinner = () => {
@@ -270,7 +259,7 @@ const Gameboard = ((boardElement, allSquares) => {
             
             if (!validateCombination(marksToCheck)) {
                 if (marksPlaced === 9) {
-                    log("tie")
+
                     whosTurnElement.style.display = "none";
                     resultElement.style.display = "block";
                     resultElement.textContent = "It's a tie";
@@ -278,11 +267,8 @@ const Gameboard = ((boardElement, allSquares) => {
                 }
                 return;
             }
-            gameOver = true;
 
-            log(whosTurn)
-            const playerWhoWon = (whosTurn === player1) ? player2 : player1;
-            log(playerWhoWon)
+            gameOver = true;
 
             whosTurnElement.style.display = "none";
             resultElement.style.display = "block";
@@ -297,15 +283,10 @@ const Gameboard = ((boardElement, allSquares) => {
     }
 
     const render = () => {
-
-
         gameState.forEach((status, index) => {
             allSquares[index].textContent = status.mark;
         })
-
         displayWhosTurn();
-        
-        
     }
 
     allSquares.forEach(square => {
