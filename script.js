@@ -1,21 +1,3 @@
-/*
-
-Gameboard (module)
-  - gameState ( [Mark (string), isOccupied(boolean)] )
-  - render()
-  - players
-
-Player (factory)
-  - mark (String)
-  - name (String)
-  - 
-
-
-Bugs
-
-When selecting "Player vs CPU" mode, if user presses back (on their web browser), all views appear at the same time
-*/
-
 const debug = true;
 
 let log;
@@ -40,6 +22,8 @@ const MainController = (() => {
     const startView1 = document.querySelector(".start-view-1");
     const startView2 = document.querySelector(".start-view-2");
     const gameView = document.querySelector(".game-view");
+
+    let enableCPU = false;
 
     const startGame = (e) => {
 
@@ -89,7 +73,6 @@ const MainController = (() => {
                 errors
             }
         } else {
-            log("Both names are valid")
             return {
                 isValid: true,
                 name1Trimmed,
@@ -111,6 +94,7 @@ const MainController = (() => {
             if (e.target.getAttribute("id") === "player-vs-computer") {
                 player2NameInput.value = "Computer 1";
                 player2NameInput.disabled = true;
+                enableCPU = true;
             } else {
                 player2NameInput.disabled = false;
             }
@@ -138,7 +122,8 @@ const MainController = (() => {
 
             } else {
                 p1 = Player(validationResults.name1Trimmed, "X");
-                p2 = Player(validationResults.name2Trimmed, "O");
+                //p2 = Player(validationResults.name2Trimmed, "O");
+                p2 = Computer(validationResults.name2Trimmed, "O");
             }
 
             log("Start game")
@@ -165,7 +150,7 @@ const Gameboard = ((boardElement, allSquares) => {
 
     let player1, player2;
     let whosTurn;
-    let playerHasWon = false;
+    let gameOver = false;
     let marksPlaced = 0;
 
     const whosTurnElement = document.querySelector(".whos-turn");
@@ -185,7 +170,7 @@ const Gameboard = ((boardElement, allSquares) => {
             {mark: null}, {mark: null}, {mark: null}
         ]
         whosTurn = player1;
-        playerHasWon = false;
+        gameOver = false;
         marksPlaced = 0;
         render();
         // When we restart, turn off the result display - And turn on the whos-turn display
@@ -197,10 +182,7 @@ const Gameboard = ((boardElement, allSquares) => {
     const play = (firstPlayer, secondPlayer) => {
         player1 = firstPlayer;
         player2 = secondPlayer;
-        log(`
-            Player 1: ${player1.name}
-            Player 2: ${player2.name}
-        `)
+
         whosTurn = player1;
         displayWhosTurn();
     }
@@ -209,23 +191,32 @@ const Gameboard = ((boardElement, allSquares) => {
         const whosTurnNameElement = document.getElementById("whos-turn-name");
         const whosTurnMarkElement = document.getElementById("whos-turn-mark");
 
-        log(whosTurn)
-
         whosTurnNameElement.textContent = whosTurn.name;
         whosTurnMarkElement.textContent = whosTurn.mark;
     }
 
     const updateTurn = () => {
+
+        if (gameOver) return;
+
+        log(whosTurn)
+
         if (whosTurn === player1) {
             whosTurn = player2;
         } else {
             whosTurn = player1;
         }
+        if (whosTurn.isAComputer) {
+
+            computerMove(whosTurn)
+            updateTurn();
+
+        }
     }
 
-    const clickHander = (e) => {
-
-        if (playerHasWon) return;
+    const clickHandler = (e) => {
+        
+        if (gameOver) return;
 
         // Is the square occupied?
         const indexOfClicked = e.target.getAttribute("data-square");
@@ -234,11 +225,21 @@ const Gameboard = ((boardElement, allSquares) => {
         // Update internal gamestate
         gameState[indexOfClicked].mark = whosTurn.mark;
         marksPlaced++;
-        log(marksPlaced)
+        checkForWinner();
+
         updateTurn();
-
         render();
+        
+    }
 
+    const computerMove = cpu => {
+        if (gameOver) return;
+        log("CPU's turn")
+            
+        cpu.makeMove(gameState);
+        marksPlaced++;
+        checkForWinner();
+        render();
     }
 
     const checkForTie = () => {
@@ -269,14 +270,19 @@ const Gameboard = ((boardElement, allSquares) => {
             
             if (!validateCombination(marksToCheck)) {
                 if (marksPlaced === 9) {
+                    log("tie")
                     whosTurnElement.style.display = "none";
                     resultElement.style.display = "block";
                     resultElement.textContent = "It's a tie";
+                    gameOver = true;
                 }
                 return;
             }
-            playerHasWon = true;
-            updateTurn();
+            gameOver = true;
+
+            log(whosTurn)
+            const playerWhoWon = (whosTurn === player1) ? player2 : player1;
+            log(playerWhoWon)
 
             whosTurnElement.style.display = "none";
             resultElement.style.display = "block";
@@ -291,22 +297,22 @@ const Gameboard = ((boardElement, allSquares) => {
     }
 
     const render = () => {
-        log("Render");
+
 
         gameState.forEach((status, index) => {
             allSquares[index].textContent = status.mark;
         })
 
         displayWhosTurn();
-        checkForWinner();
+        
         
     }
 
     allSquares.forEach(square => {
-        square.addEventListener("click", clickHander)
+        square.addEventListener("click", clickHandler)
     })
 
-    return {play, restartGame};
+    return {play, restartGame, gameState, marksPlaced};
 
 })(
     document.querySelector(".game-view"),
@@ -314,5 +320,34 @@ const Gameboard = ((boardElement, allSquares) => {
 );
 
 const Player = (name, mark) => {
-    return {name, mark}
+    return Object.assign({}, {name, mark})
+}
+
+const Computer = () => {
+
+    const prototype = Player("Computer 1", "O");
+    const isAComputer = true;
+    
+    const makeMove = (gameState) => {
+
+        // Loops through the gamestate and maps each part (square) to an index so we can locate the selected move later
+        const gameStateWithIndices = gameState.map((square, index) => {
+            return {
+                mark: square.mark, index
+            }
+        })
+
+        // Returns a list of all the legal moves
+        const legalMoves = gameStateWithIndices.filter(sq => sq.mark === null);
+
+        // Randomly selects one of the legal moves
+        const randomMove = legalMoves[Math.floor(Math.random() * (legalMoves.length))];
+
+        // Manipulate gamestate to reflect their selection
+        gameState[randomMove.index].mark = prototype.mark;
+        
+    }
+
+    return Object.assign({}, prototype, {makeMove, isAComputer});
+
 }
